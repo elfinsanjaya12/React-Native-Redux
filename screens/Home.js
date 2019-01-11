@@ -1,50 +1,71 @@
 import React from 'react';
-import { StyleSheet, Text, View, TextInput, Button } from 'react-native';
-import About from '../components/About'
+import { StyleSheet, Text, View, FlatList, Image } from 'react-native';
+import axios from 'axios';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { getArticles } from '../store/actions';
 
-export default class App extends React.Component {
+class Home extends React.Component {
+
   static navigationOptions = {
-    title : 'Home'
+    title: 'Berita Hot',
+    headerStyle: {
+      backgroundColor: '#f4511e',
+    },
+    headerTintColor: '#fff',
+    headerTitleStyle: {
+      fontWeight: 'bold',
+    },
   }
-  constructor(){
-    super()
+
+  constructor() {
+    super();
+  
     this.state = {
-      header : 'Hello State',
-      hasil : 0,
-      angka: 0,
-      showAbout: false
-    }
+      news: ''
+    };
+  }
+
+  componentDidMount() {
+    axios.get('http://newsapi.org/v2/top-headlines?country=id&apiKey=61e3b1a655ce4bf3ac9ed511a2e9a2b7')
+    .then((resp) => {
+      // this.setState({
+      //   news: resp.data.articles,
+      // });
+      this.props.getArticles(resp.data.articles);
+    })
+    .catch((resp) => {
+      console.log('catch componentDidMount:', resp);
+    });
   }
 
   render() {
-    const {showAbout} = this.state
     return (
       <View style={styles.container}>
-    
-        <TextInput style={styles.inputBox}
-          value={String(this.state.angka)}
-          onChangeText={(text) => {this.setState({angka : text})}}
-        />  
-        <Text style= {{fontSize: 32}}></Text>
-        {
-          showAbout ?  
-          <Button 
-          title="Hide About"
-            onPress={()=> {this.setState({showAbout: false})}}
-          /> : 
-          <Button 
-            title="Show About"
-            onPress={()=> {this.setState({showAbout: true})}}
-          /> 
-        }
-        {
-          showAbout && <About deskripsi = { "Ini adalah aplikasi kalkulator" } 
-        />
-        }
-        <Button 
-          title="GO to About Screen" 
-          onPress={() => this.props.navigation.navigate('About', {text : 'Ini adlah data dari params'})} 
-        />
+        <Text style={{ fontSize: 25, fontWeight: 'bold', marginBottom: 7 }}> Top 20 Berita Hot </Text>
+        <FlatList 
+          data={this.props.redux.articles} 
+          keyExtractor={(item) => item.publishedAt}
+          renderItem={({item}) => {
+            return (
+              <View style={styles.newsBlock}>
+                <View style={[styles.newsTitle, { flex: 1 }]}>
+                  <Text style={{ fontSize: 18, padding: 0 }} onPress={() => this.props.navigation.navigate('NewsPage', {
+                    title: item.title,
+                    publishedAt: item.publishedAt,
+                    desc: item.description,
+                    img: item.urlToImage,
+                    url: item.url
+                  })}> {item.title} </Text>
+                  <Text style={{ color: '#fbfbfd', fontSize: 14 }}> Diterbitkan Pada: {item.publishedAt} </Text>
+                </View>
+                <View style={styles.newsDesc}>
+                  <Image source={{ uri: item.urlToImage }} style={{ height: 200, width: 200 }} />
+                </View>
+              </View>
+            )
+          }} />
+        <Text sytle={{ color: '#eeeeee', fontSize: 12, marginTop: 5 }}> Diberdayakan oleh: https://newsapi.org </Text>
       </View>
     );
   }
@@ -53,17 +74,40 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    padding: 10,
+    backgroundColor: '#eceff5',
+    alignItems: 'center',
+  },
+  newsBlock: {
+    flexDirection: 'column',
+    backgroundColor: '#c6cddf',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    borderRadius: 3,
+    marginTop: 10,
+    padding: 8
+  },
+  newsTitle: {
+    alignItems: 'flex-start',
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eeeeee',
+  },
+  newsDesc: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 32
-  },
-  inputBox: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: 'black',
-    borderRadius: 6,
-    padding: 12,
-    margin: 6
+    padding: 8,
   }
 });
+
+const mapStateToProps = (state) => {
+  return {
+    redux: state
+  };
+};
+
+const mapDispatchToProps = (dispatch) => bindActionCreators({getArticles}, dispatch);
+
+export default connect(mapStateToProps, mapDispatchToProps)(Home);
